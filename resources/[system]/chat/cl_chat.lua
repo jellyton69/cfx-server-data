@@ -1,13 +1,14 @@
 local chatInputActive = false
 local chatInputActivating = false
+local chatVisibilityToggle = false
 
 RegisterNetEvent('chatMessage')
 RegisterNetEvent('chat:addTemplate')
 RegisterNetEvent('chat:addMessage')
 RegisterNetEvent('chat:addSuggestion')
-RegisterNetEvent('chat:addSuggestions')
 RegisterNetEvent('chat:removeSuggestion')
 RegisterNetEvent('chat:clear')
+RegisterNetEvent('chat:toggleChat')
 
 -- internal events
 RegisterNetEvent('__cfx_internal:serverPrint')
@@ -36,7 +37,7 @@ AddEventHandler('__cfx_internal:serverPrint', function(msg)
   SendNUIMessage({
     type = 'ON_MESSAGE',
     message = {
-      templateId = 'print',
+      color = { 0, 0, 0 },
       multiline = true,
       args = { msg }
     }
@@ -59,15 +60,6 @@ AddEventHandler('chat:addSuggestion', function(name, help, params)
       params = params or nil
     }
   })
-end)
-
-AddEventHandler('chat:addSuggestions', function(suggestions)
-  for _, suggestion in ipairs(suggestions) do
-    SendNUIMessage({
-      type = 'ON_SUGGESTION_ADD',
-      suggestion = suggestion
-    })
-  end
 end)
 
 AddEventHandler('chat:removeSuggestion', function(name)
@@ -93,6 +85,34 @@ AddEventHandler('chat:clear', function(name)
   })
 end)
 
+AddEventHandler('chat:toggleChat',function(newState)
+  if(newState == true or newState == false)then
+    chatVisibilityToggle = not newState
+  else
+    chatVisibilityToggle = not chatVisibilityToggle
+  end
+
+  local state = (chatVisibilityToggle == true) and "^1disabled" or "^2enabled"
+
+  SendNUIMessage({
+    type = 'ON_TOGGLE_CHAT',
+    toggle = chatVisibilityToggle
+  })
+
+  SendNUIMessage({
+  type = 'ON_MESSAGE',
+  message = {
+    color = {255,255,255},
+    multiline = true,
+    args = {"Chat Visibility has been "..state}
+    }
+  })
+end)
+
+RegisterCommand("togglechat",function()
+  TriggerEvent('chat:toggleChat')
+end)
+
 RegisterNUICallback('chatResult', function(data, cb)
   chatInputActive = false
   SetNuiFocus(false)
@@ -113,35 +133,8 @@ RegisterNUICallback('chatResult', function(data, cb)
   cb('ok')
 end)
 
-local function refreshCommands()
-  if GetRegisteredCommands then
-    local registeredCommands = GetRegisteredCommands()
-
-    local suggestions = {}
-
-    for _, command in ipairs(registeredCommands) do
-        if IsAceAllowed(('command.%s'):format(command.name)) then
-            table.insert(suggestions, {
-                name = '/' .. command.name,
-                help = ''
-            })
-        end
-    end
-
-    TriggerEvent('chat:addSuggestions', suggestions)
-  end
-end
-
-AddEventHandler('onClientResourceStart', function(resName)
-  Wait(500)
-
-  refreshCommands()
-end)
-
 RegisterNUICallback('loaded', function(data, cb)
   TriggerServerEvent('chat:init');
-
-  refreshCommands()
 
   cb('ok')
 end)

@@ -6,6 +6,8 @@ window.APP = {
       style: CONFIG.style,
       showInput: false,
       showWindow: false,
+      neverShowWindow: false,
+      neverShowWindowFlag: false,
       suggestions: [],
       templates: CONFIG.templates,
       message: '',
@@ -32,7 +34,9 @@ window.APP = {
       if (this.showWindowTimer) {
         clearTimeout(this.showWindowTimer);
       }
-      this.showWindow = true;
+      if(this.neverShowWindowFlag == false){
+        this.showWindow = true;
+      }
       this.resetShowWindowTimer();
 
       const messagesObj = this.$refs.messages;
@@ -45,6 +49,8 @@ window.APP = {
     ON_OPEN() {
       this.showInput = true;
       this.showWindow = true;
+      this.neverShowWindow = false
+
       if (this.showWindowTimer) {
         clearTimeout(this.showWindowTimer);
       }
@@ -68,9 +74,6 @@ window.APP = {
       if (!suggestion.params) {
         suggestion.params = []; //TODO Move somewhere else
       }
-      if (this.suggestions.find(a => a.name == suggestion.name)) {
-        return;
-      }
       this.suggestions.push(suggestion);
     },
     ON_SUGGESTION_REMOVE({ name }) {
@@ -81,6 +84,12 @@ window.APP = {
         this.warn(`Tried to add duplicate template '${template.id}'`)
       } else {
         this.templates[template.id] = template.html;
+      }
+    },
+    ON_TOGGLE_CHAT({ toggle }){
+      if(toggle == true || toggle == false){
+        this.neverShowWindow = toggle
+        this.neverShowWindowFlag = toggle
       }
     },
     warn(msg) {
@@ -97,6 +106,9 @@ window.APP = {
       this.showWindowTimer = setTimeout(() => {
         if (!this.showInput) {
           this.showWindow = false;
+          if(this.neverShowWindowFlag){
+            this.neverShowWindow = true
+          }
         }
       }, CONFIG.fadeTimeout);
     },
@@ -108,11 +120,11 @@ window.APP = {
         e.preventDefault();
         this.moveOldMessageIndex(e.which === 38);
       } else if (e.which == 33) {
-        var buf = document.getElementsByClassName('chat-messages')[0];
-        buf.scrollTop = buf.scrollTop - 100;
+        const buf = $(this.$refs.messages);
+        buf.scrollTop(buf.scrollTop() - 50);
       } else if (e.which == 34) {
-        var buf = document.getElementsByClassName('chat-messages')[0];
-        buf.scrollTop = buf.scrollTop + 100;
+        const buf = $(this.$refs.messages);
+        buf.scrollTop(buf.scrollTop() + 50);
       }
     },
     moveOldMessageIndex(up) {
